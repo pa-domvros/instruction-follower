@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="game-title">Instruction Follower Game</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the game */
+        body {
+            font-family: 'Georgia', serif;
+            background-color: #81e6d9; /* More vibrant teal background */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .game-container {
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2); /* Stronger shadow */
+            padding: 2.5rem;
+            max-width: 800px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            flex-grow: 1;
+        }
+        .procedure-section {
+            background-color: #e6fffa; /* Lighter vibrant teal for sections */
+            border: 1px solid #4fd1c5; /* Matching vibrant border */
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+        }
+        .procedure-item {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid transparent;
+        }
+        .procedure-item:hover:not(.completed):not(.incorrect) {
+            background-color: #a7f3d0; /* Vibrant green on hover */
+            border-color: #38a169; /* Stronger green border on hover */
+        }
+        .procedure-item.completed {
+            background-color: #68d391; /* Even more vibrant green for completed */
+            color: #1a4d2e; /* Darker green text */
+            text-decoration: line-through;
+            cursor: default;
+            border-color: #2f855a; /* Stronger green border */
+        }
+        .procedure-item.incorrect {
+            background-color: #feb2b2; /* Vibrant red for incorrect */
+            color: #9b2c2c; /* Darker red text */
+            border-color: #e53e3e; /* Stronger red border */
+            animation: shake 0.3s;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        .message-box {
+            min-height: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+        }
+        .message-box.success {
+            background-color: #48bb78; /* Vibrant success green */
+            color: #ffffff; /* White text for contrast */
+        }
+        .message-box.error {
+            background-color: #f56565; /* Vibrant error red */
+            color: #ffffff; /* White text for contrast */
+        }
+        .message-box.info {
+            background-color: #63b3ed; /* Vibrant info blue */
+            color: #ffffff; /* White text for contrast */
+        }
+        .controls button {
+            transition: all 0.2s ease-in-out;
+            transform: scale(1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+        .controls button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        .controls button:active {
+            transform: scale(0.98);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 flex-col">
+
+    <div class="game-container">
+        <h1 id="main-title" class="text-4xl font-extrabold text-gray-800 mb-2 text-center">Instruction Follower</h1>
+        <p class="text-lg italic text-gray-600 mb-4 text-center">Devised by Panagiotis Domvros, English and Drama Teacher</p>
+
+        <div class="flex justify-center mb-6">
+            <label for="language-select" class="text-lg font-semibold text-gray-700 mr-3">Choose Language:</label>
+            <select id="language-select" class="p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+                <option value="fr">Français</option>
+            </select>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 text-blue-800 p-6 rounded-xl shadow-md mb-6">
+            <h2 id="instructions-header" class="text-2xl font-bold mb-3">Οδηγίες:</h2>
+            <p id="instructions-text-1" class="text-lg mb-2">
+                Κάντε κλικ στα αντικείμενα και τα βήματα με τη **σωστή λογική σειρά** για να ολοκληρώσετε τη διαδικασία! Είναι ανακατεμένα, οπότε σκεφτείτε προσεκτικά.
+            </p>
+            <p id="instructions-text-2" class="text-md text-blue-700">
+                Κάντε κλικ στο "Επανεκκίνηση Παιχνιδιού" για να δοκιμάσετε μια νέα διαδικασία!
+            </p>
+        </div>
+
+        <div id="message-box" class="message-box info text-lg mb-6">
+            Let's get started!
+        </div>
+
+        <div id="procedure-display" class="procedure-section">
+            <!-- Procedure content will be dynamically loaded here -->
+        </div>
+
+        <div class="controls flex justify-center mt-6">
+            <button id="reset-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-6 rounded-xl text-lg">
+                Reset Game
+            </button>
+        </div>
+    </div>
+
+    <footer class="text-center text-gray-600 text-sm mt-8 pb-4">
+        ✨ Devised by Panagiotis Domvros, English and Drama Teacher, All Rights Reserved ✨
+    </footer>
+
+    <script>
+        // Language-specific texts
+        const languageTexts = {
+            titles: {
+                en: "Instruction Follower",
+                de: "Anweisungsfolger",
+                fr: "Suiveur d'Instructions"
+            },
+            messages: {
+                initial: {
+                    en: "Let's get started!",
+                    de: "Lass uns anfangen!",
+                    fr: "Commençons !"
+                },
+                find_first_step: {
+                    en: "Find the first step.",
+                    de: "Finden Sie den ersten Schritt.",
+                    fr: "Trouvez la première étape."
+                },
+                correct: {
+                    en: "Great! That's correct.",
+                    de: "Großartig! Das ist richtig.",
+                    fr: "Super ! C'est correct."
+                },
+                incorrect: {
+                    en: "Oops! That's not the next step. Try again!",
+                    de: "Hoppla! Das ist nicht der nächste Schritt. Versuchen Sie es noch einmal!",
+                    fr: "Oups ! Ce n'est pas l'étape suivante. Réessayez !"
+                },
+                completed_prefix: {
+                    en: "Procedure for \"",
+                    de: "Verfahren für \"",
+                    fr: "Procédure pour \""
+                },
+                completed_suffix: {
+                    en: "\" completed! You're a master of instructions!",
+                    de: "\" abgeschlossen! Sie sind ein Meister der Anweisungen!",
+                    fr: "\" terminée ! Vous êtes un maître des instructions !"
+                },
+                procedure_items_title: {
+                    en: "Procedure Steps (Click in Order):",
+                    de: "Verfahrensschritte (Klicken Sie in der Reihenfolge):",
+                    fr: "Étapes de la Procédure (Cliquez dans l'ordre) :"
+                },
+                reset_button: {
+                    en: "Reset Game",
+                    de: "Spiel zurücksetzen",
+                    fr: "Réinitialiser le Jeu"
+                }
+            }
+        };
+
+        // Define various simple procedures with English, German, and French translations
+        const procedures = [
+            {
+                name: { en: "How to Brush Your Teeth", de: "Wie man sich die Zähne putzt", fr: "Comment se brosser les dents" },
+                steps: [
+                    { en: "Get your toothbrush.", de: "Holen Sie Ihre Zahnbürste.", fr: "Prenez votre brosse à dents." },
+                    { en: "Put a little toothpaste on the brush.", de: "Geben Sie etwas Zahnpasta auf die Bürste.", fr: "Mettez un peu de dentifrice sur la brosse." },
+                    { en: "Put the toothbrush in your mouth.", de: "Stecken Sie die Zahnbürste in den Mund.", fr: "Mettez la brosse à dents dans votre bouche." },
+                    { en: "Brush all your teeth.", de: "Putzen Sie alle Ihre Zähne.", fr: "Brossez toutes vos dents." },
+                    { en: "Rinse your mouth with water.", de: "Spülen Sie den Mund mit Wasser aus.", fr: "Rincez votre bouche avec de l'eau." },
+                    { en: "Put your toothbrush away.", de: "Legen Sie Ihre Zahnbürste weg.", fr: "Rangez votre brosse à dents." }
+                ]
+            },
+            {
+                name: { en: "How to Make a Paper Airplane", de: "Wie man ein Papierflugzeug baut", fr: "Comment faire un avion en papier" },
+                steps: [
+                    { en: "Fold the paper in half lengthwise.", de: "Falten Sie das Papier der Länge nach in der Mitte.", fr: "Pliez le papier en deux dans le sens de la longueur." },
+                    { en: "Unfold the paper.", de: "Falten Sie das Papier auseinander.", fr: "Dépliez le papier." },
+                    { en: "Fold the top two corners to the center line.", de: "Falten Sie die oberen beiden Ecken zur Mittellinie.", fr: "Pliez les deux coins supérieurs vers la ligne centrale." },
+                    { en: "Fold the new top edges to the center line.", de: "Falten Sie die neuen oberen Kanten zur Mittellinie.", fr: "Pliez les nouveaux bords supérieurs vers la ligne centrale." },
+                    { en: "Fold the whole plane in half away from you.", de: "Falten Sie das ganze Flugzeug von sich weg in der Mitte.", fr: "Pliez tout l'avion en deux, loin de vous." },
+                    { en: "Fold down the wings on each side.", de: "Falten Sie die Flügel auf jeder Seite nach unten.", fr: "Pliez les ailes de chaque côté." },
+                    { en: "Hold it and throw it gently!", de: "Halten Sie es und werfen Sie es vorsichtig!", fr: "Tenez-le et lancez-le doucement !" }
+                ]
+            },
+            {
+                name: { en: "How to Draw a Simple Face", de: "Wie man ein einfaches Gesicht zeichnet", fr: "Comment dessiner un visage simple" },
+                steps: [
+                    { en: "Draw a big circle for the head.", de: "Zeichnen Sie einen großen Kreis für den Kopf.", fr: "Dessinez un grand cercle pour la tête." },
+                    { en: "Draw two small circles inside for the eyes.", de: "Zeichnen Sie zwei kleine Kreise innen für die Augen.", fr: "Dessinez deux petits cercles à l'intérieur pour les yeux." },
+                    { en: "Draw a small line or circle for the nose.", de: "Zeichnen Sie eine kleine Linie oder einen Kreis für die Nase.", fr: "Dessinez une petite ligne ou un cercle pour le nez." },
+                    { en: "Draw a curved line for the mouth.", de: "Zeichnen Sie eine gekrümmte Linie für den Mund.", fr: "Dessinez une ligne courbe pour la bouche." },
+                    { en: "Add two curved lines on the sides for ears.", de: "Fügen Sie zwei gekrümmte Linien an den Seiten für die Ohren hinzu.", fr: "Ajoutez deux lignes courbes sur les côtés pour les oreilles." }
+                ]
+            },
+            {
+                name: { en: "How to Wash Your Hands", de: "Wie man sich die Hände wäscht", fr: "Comment se laver les mains" },
+                steps: [
+                    { en: "Turn on the water.", de: "Drehen Sie das Wasser auf.", fr: "Ouvrez l'eau." },
+                    { en: "Wet your hands.", de: "Befeuchten Sie Ihre Hände.", fr: "Mouillez vos mains." },
+                    { en: "Put some soap in your hands.", de: "Geben Sie etwas Seife auf Ihre Hände.", fr: "Mettez du savon dans vos mains." },
+                    { en: "Rub your hands together to make bubbles.", de: "Reiben Sie Ihre Hände aneinander, um Blasen zu erzeugen.", fr: "Frottez vos mains l'une contre l'autre pour faire des bulles." },
+                    { en: "Rub them for 20 seconds.", de: "Reiben Sie sie 20 Sekunden lang.", fr: "Frottez-les pendant 20 secondes." },
+                    { en: "Rinse your hands with water.", de: "Spülen Sie Ihre Hände mit Wasser ab.", fr: "Rincez vos mains avec de l'eau." },
+                    { en: "Turn off the water.", de: "Drehen Sie das Wasser ab.", fr: "Fermez l'eau." },
+                    { en: "Dry your hands with a towel.", de: "Trocknen Sie Ihre Hände mit einem Handtuch.", fr: "Séchez vos mains avec une serviette." }
+                ]
+            },
+            {
+                name: { en: "How to Pack a School Bag", de: "Wie man eine Schultasche packt", fr: "Comment faire son sac d'école" },
+                steps: [
+                    { en: "Open your backpack.", de: "Öffnen Sie Ihren Rucksack.", fr: "Ouvrez votre sac à dos." },
+                    { en: "Put your book inside.", de: "Legen Sie Ihr Buch hinein.", fr: "Mettez votre livre à l'intérieur." },
+                    { en: "Put your pencil case inside.", de: "Legen Sie Ihre Federtasche hinein.", fr: "Mettez votre trousse à l'intérieur." },
+                    { en: "Put your lunchbox inside.", de: "Legen Sie Ihre Brotdose hinein.", fr: "Mettez votre boîte à lunch à l'intérieur." },
+                    { en: "Close your backpack.", de: "Schließen Sie Ihren Rucksack.", fr: "Fermez votre sac à dos." }
+                ]
+            },
+            {
+                name: { en: "How to Water a Plant", de: "Wie man eine Pflanze gießt", fr: "Comment arroser une plante" },
+                steps: [
+                    { en: "Fill the watering can with water.", de: "Füllen Sie die Gießkanne mit Wasser.", fr: "Remplissez l'arrosoir d'eau." },
+                    { en: "Carry the watering can to your plant.", de: "Tragen Sie die Gießkanne zu Ihrer Pflanze.", fr: "Portez l'arrosoir à votre plante." },
+                    { en: "Pour water slowly onto the soil in the pot.", de: "Gießen Sie langsam Wasser auf die Erde im Topf.", fr: "Versez de l'eau lentement sur la terre dans le pot." },
+                    { en: "Stop when the soil looks wet.", de: "Hören Sie auf, wenn die Erde nass aussieht.", fr: "Arrêtez quand la terre semble humide." },
+                    { en: "Put the watering can away.", de: "Stellen Sie die Gießkanne weg.", fr: "Rangez l'arrosoir." }
+                ]
+            },
+            {
+                name: { en: "How to Make a Simple Cheese Sandwich", de: "Wie man ein einfaches Käsesandwich macht", fr: "Comment faire un simple sandwich au fromage" },
+                steps: [
+                    { en: "Get two slices of bread.", de: "Nehmen Sie zwei Scheiben Brot.", fr: "Prenez deux tranches de pain." },
+                    { en: "Place one slice of bread on a plate.", de: "Legen Sie eine Scheibe Brot auf einen Teller.", fr: "Placez une tranche de pain sur une assiette." },
+                    { en: "Put the slice of cheese on that bread.", de: "Legen Sie die Scheibe Käse auf dieses Brot.", fr: "Mettez la tranche de fromage sur ce pain." },
+                    { en: "Put the second slice of bread on top.", de: "Legen Sie die zweite Scheibe Brot darauf.", fr: "Mettez la deuxième tranche de pain par-dessus." },
+                    { en: "Your sandwich is ready!", de: "Ihr Sandwich ist fertig!", fr: "Votre sandwich est prêt !" }
+                ]
+            },
+            {
+                name: { en: "How to Set the Table (for one person)", de: "Wie man den Tisch deckt (für eine Person)", fr: "Comment mettre la table (pour une personne)" },
+                steps: [
+                    { en: "Put the plate in the middle.", de: "Stellen Sie den Teller in die Mitte.", fr: "Mettez l'assiette au milieu." },
+                    { en: "Place the fork on the left side of the plate.", de: "Legen Sie die Gabel auf die linke Seite des Tellers.", fr: "Placez la fourchette sur le côté gauche de l'assiette." },
+                    { en: "Place the knife on the right side of the plate.", de: "Legen Sie das Messer auf die rechte Seite des Tellers.", fr: "Placez le couteau sur le côté droit de l'assiette." },
+                    { en: "Put the spoon next to the knife.", de: "Legen Sie den Löffel neben das Messer.", fr: "Mettez la cuillère à côté du couteau." },
+                    { en: "Place the cup above the knife.", de: "Stellen Sie die Tasse über das Messer.", fr: "Placez la tasse au-dessus du couteau." }
+                ]
+            },
+            {
+                name: { en: "How to Clean Up Toys", de: "Wie man Spielzeug aufräumt", fr: "Comment ranger les jouets" },
+                steps: [
+                    { en: "Look around for toys on the floor.", de: "Suchen Sie nach Spielzeug auf dem Boden.", fr: "Cherchez des jouets par terre." },
+                    { en: "Pick up one toy.", de: "Heben Sie ein Spielzeug auf.", fr: "Ramassez un jouet." },
+                    { en: "Put that toy in the toy box.", de: "Legen Sie dieses Spielzeug in die Spielzeugkiste.", fr: "Mettez ce jouet dans la boîte à jouets." },
+                    { en: "Repeat until all toys are in the box.", de: "Wiederholen Sie, bis alle Spielzeuge in der Kiste sind.", fr: "Répétez jusqu'à ce que tous les jouets soient dans la boîte." },
+                    { en: "Close the toy box lid.", de: "Schließen Sie den Deckel der Spielzeugkiste.", fr: "Fermez le couvercle de la boîte à jouets." }
+                ]
+            }
+        ];
+
+        // Game state variables
+        let currentProcedure = null;
+        let currentStepIndex = 0;
+        let correctOrderItems = []; // Stores all clickable elements in their correct logical order
+        let displayedItems = []; // Stores the DOM elements in their shuffled display order
+        let currentLanguage = 'en'; // Default language
+
+        // DOM elements
+        const gameTitleElement = document.getElementById('game-title');
+        const instructionsHeaderElement = document.getElementById('instructions-header');
+        const instructionsText1Element = document.getElementById('instructions-text-1');
+        const instructionsText2Element = document.getElementById('instructions-text-2');
+        const messageBoxElement = document.getElementById('message-box');
+        const procedureDisplayElement = document.getElementById('procedure-display');
+        const resetBtn = document.getElementById('reset-btn');
+        const languageSelect = document.getElementById('language-select');
+
+        // Helper function to set message
+        function showMessage(messageKey, type = 'info', procedureName = '') {
+            let message = '';
+            if (messageKey === 'completed') {
+                message = languageTexts.messages.completed_prefix[currentLanguage] + procedureName + languageTexts.messages.completed_suffix[currentLanguage];
+            } else {
+                message = languageTexts.messages[messageKey][currentLanguage];
+            }
+            messageBoxElement.textContent = message;
+            messageBoxElement.className = `message-box ${type} text-lg mb-6`;
+        }
+
+        // Fisher-Yates (Knuth) shuffle algorithm
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+            }
+        }
+
+        // --- Game Initialization ---
+        function initializeGame() {
+            // Pick a random procedure
+            currentProcedure = procedures[Math.floor(Math.random() * procedures.length)];
+            currentStepIndex = 0;
+            correctOrderItems = []; // Reset for new game
+            displayedItems = []; // Reset for new game
+            renderProcedure();
+            updateUIForLanguage(); // Update UI elements based on current language
+            showMessage('initial', 'info');
+        }
+
+        // Updates UI elements based on the current language
+        function updateUIForLanguage() {
+            gameTitleElement.textContent = languageTexts.titles[currentLanguage];
+            // Only the initial instruction box remains bilingual
+            instructionsHeaderElement.textContent = "Οδηγίες:"; // Stays Greek
+            instructionsText1Element.innerHTML = `Κάντε κλικ στα αντικείμενα και τα βήματα με τη **σωστή λογική σειρά** για να ολοκληρώσετε τη διαδικασία! Είναι ανακατεμένα, οπότε σκεφτείτε προσεκτικά.`; // Stays Greek
+            instructionsText2Element.innerHTML = `Κάντε κλικ στο "Επανεκκίνηση Παιχνιδιού" για να δοκιμάσετε μια νέα διαδικασία!`; // Stays Greek
+
+            resetBtn.textContent = languageTexts.messages.reset_button[currentLanguage];
+
+            // Re-render the procedure to update its language
+            renderProcedure();
+            showMessage('initial', 'info'); // Reset message
+        }
+
+        // Renders the current procedure to the DOM
+        function renderProcedure() {
+            procedureDisplayElement.innerHTML = ''; // Clear previous procedure
+
+            const procedureNameElement = document.createElement('h2');
+            procedureNameElement.classList.add('text-3xl', 'font-bold', 'text-gray-700', 'mb-4', 'text-center');
+            procedureNameElement.textContent = currentProcedure.name[currentLanguage]; // Use selected language
+            procedureDisplayElement.appendChild(procedureNameElement);
+
+            // Populate correctOrderItems with only steps
+            currentProcedure.steps.forEach((step, index) => {
+                correctOrderItems.push({ text: step[currentLanguage], originalIndex: index });
+            });
+
+            // Create DOM elements for display and add to displayedItems
+            correctOrderItems.forEach(itemData => {
+                const li = document.createElement('li');
+                li.classList.add('procedure-item', 'text-lg', 'text-gray-800');
+                li.textContent = itemData.text; // Use selected language
+                li.dataset.originalIndex = itemData.originalIndex; // Store original index for validation
+                displayedItems.push(li);
+            });
+
+            // Shuffle the displayed items
+            shuffleArray(displayedItems);
+
+            const itemsTitle = document.createElement('h3');
+            itemsTitle.classList.add('text-2xl', 'font-semibold', 'text-gray-600', 'mb-3');
+            itemsTitle.textContent = languageTexts.messages.procedure_items_title[currentLanguage]; // Use selected language
+            procedureDisplayElement.appendChild(itemsTitle);
+
+            const shuffledList = document.createElement('ul');
+            shuffledList.classList.add('list-none', 'pl-0');
+            displayedItems.forEach(item => {
+                shuffledList.appendChild(item);
+                item.addEventListener('click', handleItemClick);
+            });
+            procedureDisplayElement.appendChild(shuffledList);
+        }
+
+        // Handles clicks on procedure items
+        function handleItemClick(event) {
+            const clickedItemElement = event.target;
+            const clickedOriginalIndex = parseInt(clickedItemElement.dataset.originalIndex);
+
+            if (clickedItemElement.classList.contains('completed') || clickedItemElement.classList.contains('incorrect')) {
+                // Ignore clicks on already processed items
+                return;
+            }
+
+            // Check if the clicked item is the one expected next in the correct sequence
+            if (clickedOriginalIndex === currentStepIndex) {
+                // Correct step!
+                clickedItemElement.classList.add('completed');
+                showMessage('correct');
+                currentStepIndex++;
+                checkWinCondition();
+            } else {
+                // Incorrect step
+                clickedItemElement.classList.add('incorrect');
+                showMessage('incorrect');
+                // Remove 'incorrect' class after a short delay for visual feedback
+                setTimeout(() => {
+                    clickedItemElement.classList.remove('incorrect');
+                }, 500);
+            }
+        }
+
+        // Checks if the player has completed all steps
+        function checkWinCondition() {
+            if (currentStepIndex === correctOrderItems.length) {
+                showMessage('completed', 'success', currentProcedure.name[currentLanguage]);
+            }
+        }
+
+        // --- Event Listeners ---
+        resetBtn.addEventListener('click', initializeGame);
+
+        languageSelect.addEventListener('change', (event) => {
+            currentLanguage = event.target.value;
+            initializeGame(); // Re-initialize to load new language and procedure
+        });
+
+        // Initialize the game when the page loads
+        window.onload = initializeGame;
+
+    </script>
+</body>
+</html>
